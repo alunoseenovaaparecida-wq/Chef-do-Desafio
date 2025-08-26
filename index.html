@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bloco de Notas Online</title>
+  <meta name="description" content="Bloco de Notas Online – anotações rápidas que ficam salvas no navegador (localStorage)." />
+  <style>
+    :root{
+      --bg: #0b1020; /* fundo escuro elegante */
+      --panel: #121832;
+      --panel-2: #162044;
+      --muted: #8ea1c0;
+      --text: #e7eeff;
+      --accent: #6aa4ff;
+      --accent-2: #77e0c6;
+      --danger: #ff6b6b;
+      --ok: #72e06a;
+      --shadow: 0 10px 30px rgba(0,0,0,.45);
+      --radius: 16px;
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f6f8ff;
+        --panel:#ffffff;
+        --panel-2:#eef2ff;
+        --muted:#5b6c8b;
+        --text:#0c1830;
+        --accent:#2d6bff;
+        --accent-2:#0db98f;
+        --danger:#e34b4b;
+        --ok:#18a863;
+        --shadow: 0 8px 24px rgba(19,32,75,.15);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:linear-gradient(180deg,var(--bg), #0a0f20 60%);
+      color:var(--text); font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    .app{
+      display:grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px; height:100%;
+    }
+    .sidebar{
+      background:linear-gradient(180deg,var(--panel), var(--panel-2));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    .editor{
+      background:linear-gradient(180deg,var(--panel), var(--panel-2));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    header{
+      padding: 16px; border-bottom: 1px solid rgba(255,255,255,.08);
+      display:flex; align-items:center; gap:12px; justify-content:space-between;
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:700}
+    .brand .logo{width:28px; height:28px; border-radius:8px; background: conic-gradient(from 200deg at 50% 50%, var(--accent), var(--accent-2), var(--accent) 75%); box-shadow: inset 0 0 0 3px rgba(0,0,0,.08)}
+    .toolbar{display:flex; gap:8px; align-items:center}
+    .btn{
+      appearance:none; border:0; padding:10px 12px; border-radius:12px; cursor:pointer; color:var(--text);
+      background:#1b254a; box-shadow:0 2px 0 rgba(255,255,255,.06) inset, var(--shadow);
+      transition: transform .06s ease, filter .2s ease, background .2s ease; font-weight:600;
+    }
+    .btn:hover{ filter:brightness(1.1)}
+    .btn:active{ transform: translateY(1px)}
+    .btn.primary{ background: linear-gradient(180deg, var(--accent), #3b7bff)}
+    .btn.ghost{ background: transparent; box-shadow:none; border:1px solid rgba(255,255,255,.12)}
+    .btn.warn{ background: linear-gradient(180deg, #ff7a7a, var(--danger))}
+    .btn.ok{ background: linear-gradient(180deg, #7be49d, var(--ok)); color:#052015}
+
+    .search{ padding: 10px 12px; margin: 12px 12px 0; border-radius: 12px; width: calc(100% - 24px);
+      background: rgba(255,255,255,.06); color: var(--text); border:1px solid rgba(255,255,255,.12)
+    }
+    .notes{ list-style:none; margin:6px 0 0; padding: 6px 8px 12px; overflow:auto; flex:1;}
+    .note-item{
+      display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center;
+      padding:10px; border-radius:12px; cursor:pointer; border:1px solid transparent; margin:6px 4px;
+      background: rgba(255,255,255,.03);
+    }
+    .note-item:hover{background: rgba(255,255,255,.06)}
+    .note-item.active{ border-color: var(--accent); background: rgba(90,130,255,.18)}
+    .note-title{ font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .note-snippet{ font-size:.85rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    .note-meta{ font-size:.75rem; color:var(--muted)}
+
+    .editor-head{ display:flex; gap:10px; padding:12px 16px; align-items:center}
+    .title-input{ flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color:var(--text); font-weight:700}
+    .area{ flex:1; width:100%; padding:16px; border:0; outline:none; resize:none; background: transparent; color:var(--text); font-size:1rem; line-height:1.6}
+    .empty{ opacity:.7; text-align:center; padding:48px 24px}
+    .badge{ font-size:.75rem; padding:6px 10px; border-radius:999px; background: rgba(255,255,255,.08); color:var(--muted)}
+
+    .footer{ display:flex; gap:8px; align-items:center; justify-content:space-between; padding:8px 12px; border-top:1px solid rgba(255,255,255,.08);}
+    .hint{ font-size: .8rem; color: var(--muted)}
+    .switch{ cursor:pointer; display:inline-flex; align-items:center; gap:8px}
+    .switch input{ display:none}
+    .toggle{ width:40px; height:22px; border-radius:999px; background: rgba(255,255,255,.2); position:relative}
+    .toggle::after{ content:""; position:absolute; width:18px; height:18px; border-radius:50%; background:#fff; top:2px; left:2px; transition:.2s}
+    .switch input:checked + .toggle{ background: var(--accent)}
+    .switch input:checked + .toggle::after{ transform: translateX(18px)}
+
+    /* Responsive */
+    @media (max-width: 900px){
+      .app{ grid-template-columns: 1fr; }
+      .sidebar{ order:2; }
+      .editor{ order:1; min-height: 60vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar">
+      <header>
+        <div class="brand"><div class="logo"></div> Bloco de Notas</div>
+        <div class="toolbar">
+          <button class="btn primary" id="newNoteBtn" title="Nova nota (Ctrl+N)">Nova</button>
+          <button class="btn ghost" id="exportBtn" title="Exportar notas">Exportar</button>
+          <button class="btn ghost" id="importBtn" title="Importar notas">Importar</button>
+        </div>
+      </header>
+      <input class="search" id="search" placeholder="Buscar notas (Ctrl+F)" />
+      <ul class="notes" id="notes"></ul>
+      <div class="footer">
+        <span class="hint">Ctrl+S salvar • Autosave</span>
+        <label class="switch" title="Tema claro/escuro">
+          <input type="checkbox" id="themeToggle" />
+          <span class="toggle"></span>
+        </label>
+      </div>
+    </aside>
+    <section class="editor" id="editor">
+      <header class="editor-head">
+        <input class="title-input" id="title" placeholder="Título da nota" />
+        <span class="badge" id="status">Pronto</span>
+        <button class="btn ok" id="saveBtn" title="Salvar (Ctrl+S)">Salvar</button>
+        <button class="btn warn" id="deleteBtn" title="Excluir nota">Excluir</button>
+      </header>
+      <textarea class="area" id="content" placeholder="Comece a digitar suas anotações..." spellcheck="false"></textarea>
+      <div class="empty" id="empty" hidden>
+        <h3>Sem nota selecionada</h3>
+        <p>Crie uma nova nota ou selecione uma na lista.</p>
+      </div>
+    </section>
+  </div>
+
+  <input type="file" id="fileInput" accept="application/json" hidden />
+
+  <script>
+  ;(() => {
+    const $ = (s, el=document) => el.querySelector(s);
+    const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+    const storeKey = 'notes.v1';
+    const themeKey = 'notes.theme';
+
+    /** @type {{id:string,title:string,content:string,updated:number}[]} */
+    let notes = loadNotes();
+    let currentId = notes[0]?.id || null;
+
+    const els = {
+      notes: $('#notes'),
+      search: $('#search'),
+      title: $('#title'),
+      content: $('#content'),
+      status: $('#status'),
+      saveBtn: $('#saveBtn'),
+      deleteBtn: $('#deleteBtn'),
+      newNoteBtn: $('#newNoteBtn'),
+      empty: $('#empty'),
+      themeToggle: $('#themeToggle'),
+      importBtn: $('#importBtn'),
+      exportBtn: $('#exportBtn'),
+      fileInput: $('#fileInput')
+    };
+
+    // THEME
+    const savedTheme = localStorage.getItem(themeKey);
+    if(savedTheme){
+      if(savedTheme === 'light') document.documentElement.style.setProperty('--bg', getComputedStyle(document.documentElement).getPropertyValue('--bg'));
+      document.documentElement.dataset.theme = savedTheme;
+      els.themeToggle.checked = savedTheme === 'light';
+    } else {
+      els.themeToggle.checked = matchMedia('(prefers-color-scheme: light)').matches;
+    }
+    els.themeToggle.addEventListener('change', () => {
+      const isLight = els.themeToggle.checked;
+      document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
+      localStorage.setItem(themeKey, isLight ? 'light' : 'dark');
+    });
+
+    // RENDER
+    function renderList(filter=''){
+      els.notes.innerHTML = '';
+      const q = filter.trim().toLowerCase();
+      const sorted = [...notes].sort((a,b)=> b.updated - a.updated)
+        .filter(n => !q || n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q));
+      if(sorted.length===0){
+        const li = document.createElement('div');
+        li.className = 'empty';
+        li.innerHTML = '<p>Nenhuma nota encontrada.</p>';
+        els.notes.appendChild(li);
+        return;
+      }
+      for(const n of sorted){
+        const li = document.createElement('li');
+        li.className = 'note-item' + (n.id===currentId?' active':'');
+        li.dataset.id = n.id;
+        li.innerHTML = `
+          <div>
+            <div class="note-title">${escapeHtml(n.title||'Sem título')}</div>
+            <div class="note-snippet">${escapeHtml((n.content||'').split('\n')[0]).slice(0,60)}</div>
+            <div class="note-meta">Atualizado ${timeAgo(n.updated)}</div>
+          </div>
+        `;
+        li.addEventListener('click', () => selectNote(n.id));
+        els.notes.appendChild(li);
+      }
+    }
+
+    function renderEditor(){
+      const n = notes.find(n=>n.id===currentId);
+      if(!n){
+        els.title.value = '';
+        els.content.value = '';
+        els.empty.hidden = false;
+        els.content.style.display = 'none';
+        els.title.disabled = true;
+        els.content.disabled = true;
+        return;
+      }
+      els.title.disabled = false; els.content.disabled = false;
+      els.empty.hidden = true; els.content.style.display = 'block';
+      els.title.value = n.title;
+      els.content.value = n.content;
+      status('Pronto');
+    }
+
+    function selectNote(id){ currentId = id; renderList(els.search.value); renderEditor(); }
+
+    function newNote(){
+      const n = { id: uid(), title: 'Nova nota', content: '', updated: Date.now() };
+      notes.unshift(n);
+      currentId = n.id;
+      persist();
+      renderList(els.search.value);
+      renderEditor();
+      els.title.focus(); els.title.select();
+    }
+
+    function removeNote(){
+      const n = notes.find(n=>n.id===currentId);
+      if(!n) return;
+      if(!confirm(`Excluir a nota "${n.title||'Sem título'}"?`)) return;
+      notes = notes.filter(x=>x.id!==currentId);
+      currentId = notes[0]?.id || null;
+      persist();
+      renderList(els.search.value); renderEditor();
+    }
+
+    function saveCurrent(){
+      const n = notes.find(n=>n.id===currentId);
+      if(!n) return;
+      n.title = els.title.value.trim();
+      n.content = els.content.value;
+      n.updated = Date.now();
+      persist();
+      status('Salvo');
+      renderList(els.search.value);
+    }
+
+    // Autosave com debounce
+    let t1, t2;
+    els.title.addEventListener('input', () => { status('Digitando...'); clearTimeout(t1); t1=setTimeout(saveCurrent, 400); });
+    els.content.addEventListener('input', () => { status('Digitando...'); clearTimeout(t2); t2=setTimeout(saveCurrent, 500); });
+
+    els.saveBtn.addEventListener('click', saveCurrent);
+    els.deleteBtn.addEventListener('click', removeNote);
+    els.newNoteBtn.addEventListener('click', newNote);
+    els.search.addEventListener('input', e=> renderList(e.target.value));
+
+    // Export/Import
+    els.exportBtn.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify({version:1, notes}, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `notas-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    els.importBtn.addEventListener('click', ()=> els.fileInput.click());
+    els.fileInput.addEventListener('change', async (e)=>{
+      const file = e.target.files?.[0];
+      if(!file) return;
+      try{
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if(!Array.isArray(data.notes)) throw new Error('Formato inválido');
+        // mesclar mantendo mais recente
+        const map = new Map(notes.map(n=>[n.id,n]));
+        for(const n of data.notes){
+          if(!n.id) n.id = uid();
+          const old = map.get(n.id);
+          if(!old || n.updated>old.updated) map.set(n.id,n);
+        }
+        notes = Array.from(map.values());
+        currentId = notes[0]?.id || null;
+        persist(); renderList(els.search.value); renderEditor();
+        status('Importado');
+      }catch(err){ alert('Falha ao importar: '+ err.message); }
+      finally{ e.target.value = ''; }
+    });
+
+    // Atalhos
+    window.addEventListener('keydown', (e)=>{
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); saveCurrent(); }
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n'){ e.preventDefault(); newNote(); }
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='f'){ e.preventDefault(); els.search.focus(); els.search.select(); }
+      if(e.key==='Escape'){ els.search.blur(); els.title.blur(); els.content.blur(); }
+    });
+
+    // Helpers
+    function status(text){ els.status.textContent = text; setTimeout(()=> els.status.textContent='Pronto', 1200); }
+
+    function loadNotes(){
+      try{ const raw = localStorage.getItem(storeKey); return raw? JSON.parse(raw) : [] }catch{ return [] }
+    }
+    function persist(){ localStorage.setItem(storeKey, JSON.stringify(notes)); }
+    function uid(){ return 'n_'+Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4) }
+    function escapeHtml(s=''){ return s.replace(/[&<>"']/g, m=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])) }
+    function timeAgo(ts){
+      const sec = Math.floor((Date.now()-ts)/1000);
+      if(sec<60) return 'agora';
+      const m = Math.floor(sec/60); if(m<60) return `${m} min atrás`;
+      const h = Math.floor(m/60); if(h<24) return `${h} h atrás`;
+      const d = Math.floor(h/24); if(d<7) return `${d} dia${d>1?'s':''} atrás`;
+      const dt = new Date(ts); return dt.toLocaleDateString();
+    }
+
+    // Inicialização
+    if(notes.length===0){
+      notes = [{ id: uid(), title: 'Bem-vindo 👋', content: 'Este é seu Bloco de Notas Online.\n\n• Suas notas ficam salvas no próprio navegador (localStorage).\n• Use Ctrl+N para criar uma nota e Ctrl+S para salvar.\n• Pesquise no campo acima para filtrar rapidamente.\n• Exporte/importe para fazer backup.\n\nBom uso! 😊', updated: Date.now() }];
+      currentId = notes[0].id;
+      persist();
+    }
+    renderList('');
+    renderEditor();
+  })();
+  </script>
+</body>
+</html>
