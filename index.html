@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Jogo de Receitas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <h1>🍽️ Desafio das Receitas</h1>
+    
+    <div class="status-bar">
+      <p>Fase: <span id="fase-atual">1</span></p>
+      <p>Pontuação: <span id="pontuacao">0</span></p>
+      <p>Tempo: <span id="temporizador">30</span>s</p>
+    </div>
+
+    <h2 id="nome-receita">Carregando...</h2>
+    <img id="imagem-receita" src="" alt="Imagem da receita" style="max-width:100%; display: none;">
+
+    <form id="form-ingredientes">
+      <p>Escolha os ingredientes:</p>
+      <div class="lista-ingredientes"></div>
+      <button type="submit">Verificar</button>
+    </form>
+
+    <div id="resultado"></div>
+
+    <button id="proxima-fase" style="display: none;">Próxima Fase</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
+
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #fdf6e3;
+  color: #333;
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+.game-container {
+  background-color: #fff;
+  border: 2px solid #ccc;
+  padding: 30px;
+  border-radius: 10px;
+  max-width: 600px;
+  text-align: center;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.lista-ingredientes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 20px 0;
+}
+
+.lista-ingredientes label {
+  margin-bottom: 6px;
+}
+
+button {
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+#resultado {
+  margin-top: 15px;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+
+const receitas = [
+  {
+    nome: "Bolo de Chocolate",
+    ingredientesCorretos: ["Farinha", "Ovos", "Açúcar", "Chocolate", "Fermento"],
+    imagem: "https://via.placeholder.com/400x200?text=Bolo+de+Chocolate"
+  },
+  {
+    nome: "Salada Caesar",
+    ingredientesCorretos: ["Alface", "Frango", "Croutons", "Queijo", "Molho Caesar"],
+    imagem: "https://via.placeholder.com/400x200?text=Salada+Caesar"
+  },
+  {
+    nome: "Pizza Margherita",
+    ingredientesCorretos: ["Massa", "Molho de Tomate", "Queijo", "Manjericão"],
+    imagem: "https://via.placeholder.com/400x200?text=Pizza+Margherita"
+  }
+];
+
+const ingredientesPossiveis = [
+  "Farinha", "Ovos", "Açúcar", "Chocolate", "Fermento", "Alface", "Frango", 
+  "Croutons", "Queijo", "Molho Caesar", "Massa", "Molho de Tomate", "Manjericão", 
+  "Presunto", "Ketchup"
+];
+
+let faseAtual = 0;
+let pontuacao = 0;
+let tempo = 30;
+let intervalo;
+
+const nomeReceita = document.getElementById("nome-receita");
+const imagemReceita = document.getElementById("imagem-receita");
+const listaIngredientes = document.querySelector(".lista-ingredientes");
+const resultado = document.getElementById("resultado");
+const pontuacaoEl = document.getElementById("pontuacao");
+const faseEl = document.getElementById("fase-atual");
+const temporizador = document.getElementById("temporizador");
+const form = document.getElementById("form-ingredientes");
+const btnProxima = document.getElementById("proxima-fase");
+
+function carregarFase() {
+  if (faseAtual >= receitas.length) {
+    nomeReceita.textContent = "🎉 Fim do jogo!";
+    listaIngredientes.innerHTML = "";
+    imagemReceita.style.display = "none";
+    resultado.textContent = `Pontuação final: ${pontuacao}`;
+    btnProxima.style.display = "none";
+    clearInterval(intervalo);
+    return;
+  }
+
+  const receita = receitas[faseAtual];
+  nomeReceita.textContent = receita.nome;
+  imagemReceita.src = receita.imagem;
+  imagemReceita.style.display = "block";
+  faseEl.textContent = faseAtual + 1;
+  resultado.textContent = "";
+  btnProxima.style.display = "none";
+
+  // Resetar temporizador
+  tempo = 30;
+  temporizador.textContent = tempo;
+  clearInterval(intervalo);
+  intervalo = setInterval(() => {
+    tempo--;
+    temporizador.textContent = tempo;
+    if (tempo === 0) {
+      clearInterval(intervalo);
+      mostrarResultado([]);
+    }
+  }, 1000);
+
+  // Gerar lista de ingredientes
+  listaIngredientes.innerHTML = "";
+  ingredientesPossiveis.forEach(ingrediente => {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = ingrediente;
+    label.appendChild(checkbox);
+    label.append(" " + ingrediente);
+    listaIngredientes.appendChild(label);
+  });
+}
+
+function mostrarResultado(selecionados) {
+  const receita = receitas[faseAtual];
+  const corretos = receita.ingredientesCorretos;
+
+  const acertou = selecionados.length === corretos.length &&
+    selecionados.every(i => corretos.includes(i));
+
+  if (acertou) {
+    pontuacao += 10;
+    resultado.textContent = "✅ Correto!";
+  } else {
+    resultado.textContent = "❌ Ingredientes errados!";
+  }
+
+  pontuacaoEl.textContent = pontuacao;
+  btnProxima.style.display = "inline-block";
+  clearInterval(intervalo);
+}
+
+form.addEventListener("submit", function(e) {
+  e.preventDefault();
+  const selecionados = Array.from(document.querySelectorAll("input[type=checkbox]:checked"))
+    .map(cb => cb.value);
+  mostrarResultado(selecionados);
+});
+
+btnProxima.addEventListener("click", () => {
+  faseAtual++;
+  carregarFase();
+});
+
+carregarFase();
