@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Jogo de Receitas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <h1>🍽️ Desafio das Receitas</h1>
+    
+    <div class="status-bar">
+      <p>Fase: <span id="fase-atual">1</span></p>
+      <p>Pontuação: <span id="pontuacao">0</span></p>
+      <p>Tempo: <span id="temporizador">30</span>s</p>
+    </div>
+
+    <h2 id="nome-receita">Carregando...</h2>
+    <img id="imagem-receita" src="" alt="Imagem da receita" style="max-width:100%; display: none;">
+
+    <form id="form-ingredientes">
+      <p>Escolha os ingredientes:</p>
+      <div class="lista-ingredientes"></div>
+      <button type="submit">Verificar</button>
+    </form>
+
+    <div id="resultado"></div>
+
+    <button id="proxima-fase" style="display: none;">Próxima Fase</button>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
